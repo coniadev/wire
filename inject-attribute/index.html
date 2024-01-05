@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <title>The Inject Attribute - Conia Wire</title>
+
+    <link rel="shortcut icon" href="../logo.svg">
+    <link rel="mask-icon" href="../logo.svg" color="#000000">
+
+    <link rel="stylesheet" href="../styles.css">
+
+
+
+    <script>var base_url = '..';</script>
+    <script src="../highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+
+
+
+
+
+    <script src="../search/main.js"></script>
+
+</head>
+
+<body>
+    <header class="mobile">
+        <div class="logo">
+            <a href="https://conia.dev">
+                <img src="../logo.svg" alt="The Inject Attribute - Conia Wire Logo">
+            </a>
+            Wire
+        </div>
+        <div class="toc-link">
+            <a href="#navigation">Jump to table of contents</a>
+        </div>
+    </header>
+    <main>
+        <aside id="navigation" class="pane">
+            <div class="logo">
+                <a href="https://conia.dev">
+                    <img src="../logo.svg" alt="The Inject Attribute - Conia Wire Logo">
+                </a>
+                Wire
+            </div>
+
+            <div class="title">Table of Contents</div>
+
+            <ul>
+            
+                <!--
+
+-->
+
+  <li>
+    Documentation
+    <ul>
+        
+            <!--
+
+-->
+
+<li >
+    <a href="..">Introduction</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../creator/">The Creator</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../resolvers/">Argument Resolvers</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../container/">PSR-11 Containers</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../call-attribute/">The Call Attribute</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li class="active">
+    <a href="./">The Inject Attribute</a>
+</li>
+
+        
+    </ul>
+  </li>
+
+            
+                <!--
+
+-->
+
+  <li>
+    Resources
+    <ul>
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../changelog/">Changelog</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../license/">License</a>
+</li>
+
+        
+    </ul>
+  </li>
+
+            
+            </ul>
+
+            <div class="title">Quick Search</div>
+
+            <div role="search">
+                <form action="../search.html" method="get">
+                <input type="search" name="q" placeholder="Search docs" />
+                </form>
+            </div>
+        </aside>
+
+        <article>
+            <div>
+            
+                <h1 id="the-inject-attribute">The Inject Attribute</h1>
+<p>By annotating callables or constructors with an <code>Inject</code> attribute, you can
+tell the resolvers and, consequently, the creator how to obtain arguments that
+cannot be resolved otherwise  or to apply arguments that would not be used by
+default. This means that you can use it to override <strong><em>Wire</em></strong>'s default
+behavior, for example when you want to choose one of several alternatives or
+when there are literal arguments such as strings, numbers or arrays expected.</p>
+<h2 id="example">Example</h2>
+<p>Let's assume you have two different functions, each of which requires a <code>Model</code>
+object as input. But you want to ensure that one of the functions always
+receives a <code>SubModel</code> instance, which is a subclass of <code>Model</code>. The following
+example shows how to accomplish that:</p>
+<pre><code>use Conia\Wire\Inject;
+use Conia\Wire\Wire;
+
+class Model
+{
+}
+
+class SubModel extends Model
+{
+}
+
+function expectsModel(Model $model): Model
+{
+    return $model;
+}
+
+#[Inject(model: SubModel::class)]
+function alsoExpectsModel(Model $model): Model
+{
+    return $model;
+}
+
+$resolver = Wire::callableResolver();
+
+// `expectsModel` is not annotated. An object of the base class is created
+$args = $resolver-&gt;resolve('expectsModel');
+$result = expectsModel(...$args);
+assert($result instanceof Model);
+
+// `alsoExpectsModel` is annotated. An object of the sub class is created
+$args = $resolver-&gt;resolve('alsoExpectsModel');
+$result = alsoExpectsModel(...$args);
+assert($result instanceof SubModel);
+</code></pre>
+<p>You can control the behavior of the function (in this case, <code>alsoExpectsModel</code>)
+by annotating it with an <code>Inject</code> attribute. If the function is not annotated,
+the resolver would create an object of the base class <code>Model</code> because the type of
+the parameter <code>$model</code> is <code>Model</code>.</p>
+<h2 id="how-to-use">How to use</h2>
+<p>Simply add the <code>Inject</code> attribute to the callable or constructor that you want
+to control. Then, you pass a named argument with the same name as the parameter for
+which you want to provide an argument. In the example, the parameter name in
+question is <code>$model</code>. So you pass the identically named argument <code>model</code> with
+the value you want the callable's argument to have, or, if it's not a literal,
+with an identifier from which the value is derived (<a href="#how-injected-argument-values-are-determined">see below for a detailed
+description</a>). </p>
+<p>The snippet below shows the relevant part of the example above, highlighting
+the identically named parameters:</p>
+<p><code class="annotated"> <span class="hljs-meta">#[Inject</span>(<span
+class="hljs-attr"><span class="spot red">model</span></span>: <span
+class="hljs-title class_">SubModel</span>::<span class="hljs-variable
+language_">class</span>)<span class="hljs-meta">]</span><br> <span
+class="hljs-function"><span class="hljs-keyword">function</span> <span
+class="hljs-title">alsoExpectsModel</span>(<span class="hljs-params">Model
+<span class="hljs-variable">$<span class="spot
+red">model</span></span></span>): <span class="hljs-title">Model</span>
+</span>{ <span class="dots">...</span> </code></p>
+<p>You may also add multiple arguments, and you have to only add those you want to
+control:</p>
+<p><code class="annotated"><span class="hljs-meta">#[Inject</span>(<span
+class="hljs-attr"><span class="spot red">another</span></span>: <span
+class="hljs-number">13.73</span>, <span class="hljs-attr"><span class="spot
+purple">value</span></span>: <span class="hljs-number">13</span>)<span
+class="hljs-meta">]</span> <span class="hljs-function"><br><span
+class="hljs-keyword">function</span> <span
+class="hljs-title">theCallable</span>(<span class="hljs-params"><span
+class="hljs-keyword">int</span> <span class="hljs-variable">$<span class="spot
+purple">value</span></span>, Model <span class="hljs-variable">$model</span>,
+<span class="hljs-keyword">float</span> <span class="hljs-variable">$<span
+class="spot red">another</span></span></span>): <span
+class="hljs-title">Model</span> </span>{ </code></p>
+<h2 id="how-injected-argument-values-are-determined">How injected argument values are determined</h2>
+<p>The resolvers behave differently depending on the type of value that you want
+to be injected. Especially when dealing with strings and arrays, they are
+treated in a specific manner.</p>
+<div class="admonition warn">
+<p class="admonition-title">Warning</p>
+<p>The resolver does not check if a value which was obtained with the help of
+an <code>Inject</code> attribute matches the parameters type of the callable it
+should be applied to, so handle with care.</p>
+</div>
+<h3 id="strings">Strings</h3>
+<p>If the value is a string, like in the following example:</p>
+<pre><code class="language-php">#[Inject(param: 'container.id')]
+// or
+#[Inject(param: SubModel::class)]
+</code></pre>
+<p>the resolver uses the following rules.</p>
+<ol>
+<li>If a container is available, see if it has an entry with and id matching te
+   value of the string. If so, return it, if not continue with step 2.</li>
+<li>If the string is the full qualified name of an existing class, try to create
+   it using the creator and return it. If not, continue with step 3.</li>
+<li>Return the string as-is.</li>
+</ol>
+<h3 id="arrays">Arrays</h3>
+<p>If the value is a array, as shown here:</p>
+<pre><code class="language-php">#[Inject(param: ['number' =&gt; 13, 'str' =&gt; 'value'])]
+</code></pre>
+<p>the resolver uses the following rules.</p>
+<ol>
+<li>If the array follows a specific format, it is examined and a corresponding
+   value is generated based on its contents. If it does not have that specific
+   format, continue with step 2.  For details see: <a href="#dont-follow-the-rules">Don't follow the
+   rules</a></li>
+<li>Return the array as-is.</li>
+</ol>
+<h3 id="the-literal-rest">The literal rest</h3>
+<p>All other types, like numbers, booleans or null values are passed to the
+callable or are returned by the resolver as they are, i. e. unchanged as
+literals.</p>
+<h2 id="dont-follow-the-rules">Don't follow the rules</h2>
+<p>If you want to bypass the string rules or be explicit about the values you
+inject, you can use a specific type of array as an argument for the attribute.
+Additionally, with that feature, you can have control over how a value is
+generated.</p>
+<p>The array must be a list (an array is considered a list if its keys consist of
+consecutive numbers starting from 0, i. e. PHP's <code>array_is_list</code> returns
+<code>true</code>) and have a count of exactly 2. Additionally the array's second value
+must be a value of the enum <code>Conia\Wire\Type</code> which controls what is done with
+the first value of the array. </p>
+<pre><code class="language-php">// a valid array
+['value', Conia\Wire\Type::Literal]
+</code></pre>
+<p>Supported types are:</p>
+<h3 id="coniawiretypeliteral"><code>Conia\Wire\Type::Literal</code></h3>
+<p>Returns the value as is.</p>
+<pre><code class="language-php">#[Inject(value: ['a string value', Type::Literal])]
+public function myCallable(string $value): void 
+</code></pre>
+<h3 id="coniawiretypeentry"><code>Conia\Wire\Type::Entry</code></h3>
+<p>Uses the value as id to fetch a value from the <a href="../container/">container</a>.</p>
+<pre><code class="language-php">$container-&gt;add('container.entry.id', new Object());
+
+#[Inject(value: ['container.entry.id', Type::Entry])]
+public function myCallable(Object $value): void 
+</code></pre>
+<pre><code class="language-php">$container-&gt;add(\Your\Interface::class, new Object());
+
+#[Inject(value: [\Your\Interface::class, Type::Entry])]
+public function myCallable(\Your\Interface $value): void 
+</code></pre>
+<h3 id="coniawiretypecreate"><code>Conia\Wire\Type::Create</code></h3>
+<p>Must be a fully qualified class name which the creator attemtps to create.</p>
+<pre><code class="language-php">#[Inject(value: [SubModel::class, Type::Create])]
+public function myCallable(Model $value): void 
+</code></pre>
+<h3 id="coniawiretypeenv"><code>Conia\Wire\Type::Env</code></h3>
+<p>The value is assumed to be the name an environment variable. It attempts to
+read the environment variable using PHP's internal function <code>getenv</code> and then
+returns its value.</p>
+<pre><code class="language-php">#[Inject(value: ['PATH', Type::Env])]
+public function myCallable(string|bool $value): void {
+    // $value has now the content of the environment variable PATH
+}
+</code></pre>
+            
+            </div>
+        </article>
+
+        <aside class="toc desktop">
+            <!-- github repo URL -->
+            
+                <a href="https://github.com/coniadev/wire/edit/master/docs/inject-attribute.md" class="github-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Pro 6.1.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+                    Edit on GitHub
+                </a>
+            
+
+            <div class="title">This Page</div>
+
+            <ul>
+            
+                <li><a href="#the-inject-attribute">The Inject Attribute</a></li>
+                
+                    <li>
+                        <a href="#example">Example</a>
+                        
+                    </li>
+                
+                    <li>
+                        <a href="#how-to-use">How to use</a>
+                        
+                    </li>
+                
+                    <li>
+                        <a href="#how-injected-argument-values-are-determined">How injected argument values are determined</a>
+                        
+                            <ul>
+                                
+                                <li>
+                                    <a href="#strings">Strings</a>
+                                </li>
+                                
+                                <li>
+                                    <a href="#arrays">Arrays</a>
+                                </li>
+                                
+                                <li>
+                                    <a href="#the-literal-rest">The literal rest</a>
+                                </li>
+                                
+                            </ul>
+                        
+                    </li>
+                
+                    <li>
+                        <a href="#dont-follow-the-rules">Don't follow the rules</a>
+                        
+                            <ul>
+                                
+                                <li>
+                                    <a href="#coniawiretypeliteral">Conia\Wire\Type::Literal</a>
+                                </li>
+                                
+                                <li>
+                                    <a href="#coniawiretypeentry">Conia\Wire\Type::Entry</a>
+                                </li>
+                                
+                                <li>
+                                    <a href="#coniawiretypecreate">Conia\Wire\Type::Create</a>
+                                </li>
+                                
+                                <li>
+                                    <a href="#coniawiretypeenv">Conia\Wire\Type::Env</a>
+                                </li>
+                                
+                            </ul>
+                        
+                    </li>
+                
+            
+            </ul>
+
+            <div class="title">Navigate</div>
+
+        
+            <ul class="prevnext">
+                <li>
+                    <a href="/" title="Home page">
+                        Home page
+                    </a>
+                </li>
+                
+                <li>
+                    Previous:
+                    <a href="../call-attribute/" title="The Call Attribute">
+                        <i>The Call Attribute</i>
+                    </a>
+                </li>
+                
+                
+                <li>
+                    Next:
+                    <a href="../changelog/" title="Changelog">
+                        <i>Changelog</i>
+                    </a>
+                </li>
+                
+            </ul>
+        
+        </aside>
+    </main>
+
+    <footer>
+        © 2023-2024 ebene fünf GmbH |
+        Built with <a href="https://www.mkdocs.org">MkDocs</a>.
+    </footer>
+
+  <!--
+  MkDocs version      : 1.5.3
+  Docs Build Date UTC : 2024-01-05 16:46:20.469038+00:00
+  -->
+</body>
+</html>
