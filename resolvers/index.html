@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <title>Argument Resolvers - Conia Wire</title>
+
+    <link rel="shortcut icon" href="../logo.svg">
+    <link rel="mask-icon" href="../logo.svg" color="#000000">
+
+    <link rel="stylesheet" href="../styles.css">
+
+
+
+    <script>var base_url = '..';</script>
+    <script src="../highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+
+
+
+
+
+    <script src="../search/main.js"></script>
+
+</head>
+
+<body>
+    <header class="mobile">
+        <div class="logo">
+            <a href="https://conia.dev">
+                <img src="../logo.svg" alt="Argument Resolvers - Conia Wire Logo">
+            </a>
+            Wire
+        </div>
+        <div class="toc-link">
+            <a href="#navigation">Jump to table of contents</a>
+        </div>
+    </header>
+    <main>
+        <aside id="navigation" class="pane">
+            <div class="logo">
+                <a href="https://conia.dev">
+                    <img src="../logo.svg" alt="Argument Resolvers - Conia Wire Logo">
+                </a>
+                Wire
+            </div>
+
+            <div class="title">Table of Contents</div>
+
+            <ul>
+            
+                <!--
+
+-->
+
+  <li>
+    Documentation
+    <ul>
+        
+            <!--
+
+-->
+
+<li >
+    <a href="..">Introduction</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../creator/">The Creator</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li class="active">
+    <a href="./">Argument Resolvers</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../container/">PSR-11 Containers</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../call-attribute/">The Call Attribute</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../inject-attribute/">The Inject Attribute</a>
+</li>
+
+        
+    </ul>
+  </li>
+
+            
+                <!--
+
+-->
+
+  <li>
+    Resources
+    <ul>
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../changelog/">Changelog</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../license/">License</a>
+</li>
+
+        
+    </ul>
+  </li>
+
+            
+            </ul>
+
+            <div class="title">Quick Search</div>
+
+            <div role="search">
+                <form action="../search.html" method="get">
+                <input type="search" name="q" placeholder="Search docs" />
+                </form>
+            </div>
+        </aside>
+
+        <article>
+            <div>
+            
+                <h1 id="argument-resolvers">Argument Resolvers</h1>
+<p><strong><em>Wire</em></strong> provides two different autowiring argument resolvers, one for
+<a href="#resolve-callable-arguments">callables</a> like functions, closures, etc and
+another for <a href="#resolve-constructor-arguments">constructors</a>. These resolvers
+are used internally by the creator.</p>
+<h2 id="resolve-callable-arguments">Resolve callable arguments</h2>
+<p>To create an associative array of callable arguments, create
+a <code>CallableResolver</code> instance using the <code>Wire</code> factory and pass the callable to
+the <code>resolve</code> method. You can then pass the arguments to the
+callable via the <code>...</code> operator, for example.</p>
+<h3 id="functions">Functions</h3>
+<pre><code>use Conia\Wire\Wire;
+
+class Value
+{
+    public string $str = 'value property';
+}
+
+function readValue(Value $value): string
+{
+    return $value-&gt;str;
+}
+
+$resolver = Wire::callableResolver();
+$args = $resolver-&gt;resolve('readValue');
+
+assert(readValue(...$args) === 'value property');
+</code></pre>
+<h3 id="closures">Closures</h3>
+<pre><code>use Conia\Wire\Wire;
+
+class Value
+{
+    public string $str = 'value property';
+}
+
+$closure =  function (Value $value): string {
+    return $value-&gt;str;
+};
+$resolver = Wire::callableResolver();
+$args = $resolver-&gt;resolve($closure);
+
+assert($closure(...$args) === 'value property');
+</code></pre>
+<h3 id="instance-methods">Instance methods</h3>
+<pre><code>use Conia\Wire\Wire;
+
+class Value
+{
+    public string $str = 'value property';
+}
+
+class Model
+{
+    public function readValue(Value $value): string
+    {
+        return $value-&gt;str;
+    }
+}
+
+$model = new Model();
+$resolver = Wire::callableResolver();
+$args = $resolver-&gt;resolve([$model, 'readValue']);
+
+assert($model-&gt;readValue(...$args) === 'value property');
+</code></pre>
+<h3 id="static-methods">Static methods</h3>
+<pre><code>use Conia\Wire\Wire;
+
+class Value
+{
+    public string $str = 'value property';
+}
+
+class Model
+{
+    public static function readValue(Value $value): string
+    {
+        return $value-&gt;str;
+    }
+}
+
+$resolver = Wire::callableResolver();
+$args = $resolver-&gt;resolve([Model::class, 'readValue']);
+
+assert(Model::readValue(...$args) === 'value property');
+</code></pre>
+<h2 id="resolve-constructor-arguments">Resolve constructor arguments</h2>
+<p>You simply pass the fully qualified class name to the <code>resolve</code> method of the
+<code>ConstructorResolver</code> instance created by the <code>Wire</code> factory:</p>
+<pre><code>use Conia\Wire\Wire;
+
+class Value
+{
+    public string $str = 'value property';
+}
+
+class Model
+{
+    public function __construct(public Value $value)
+    {
+    }
+}
+
+$resolver = Wire::constructorResolver();
+$args = $resolver-&gt;resolve(Model::class);
+
+assert((new Model(...$args))-&gt;value-&gt;str === 'value property');
+</code></pre>
+<div class="admonition info">
+<p class="admonition-title">Factory methods</p>
+<p>If you have a class with a factory method you can use the callable resolver as
+shown in the <a href="#static-methods">static methods</a> example.</p>
+</div>
+<h2 id="assist-resolvers-with-arguments-that-are-already-available">Assist resolvers with arguments that are already available</h2>
+<p>If you have some of the necessary arguments already at hand, you can pass them
+converted to an associative array to the <code>resolve</code> method's <code>predefinedArgs</code>
+and/or <code>predefinedTypes</code> parameters. The array's keys must match the names or types of
+the parameters of the callable to be resolved.<br />
+For more information, especially the difference between
+<code>predefinedArgs</code> and <code>predefinedTypes</code>, see <a href="/creator/#assist-the-creator-with-arguments-that-are-already-available"><code>Creator</code>'s section about the same
+topic</a>,
+which works in a similar way.</p>
+<p>An example using the callable resolver:</p>
+<pre><code>use Conia\Wire\Wire;
+
+class Value
+{
+    public string $str = 'value property';
+}
+
+class Model
+{
+    public Value $value;
+    public string $arg;
+    public string $type;
+
+    public static function create(string $arg, string $type, Value $value)
+    {
+        $model = new self();
+        $model-&gt;value = $value;
+        $model-&gt;arg = $arg;
+        $model-&gt;type = $type;
+
+        return $model;
+    }
+}
+
+$resolver = Wire::callableResolver();
+$args = $resolver-&gt;resolve(
+    [Model::class, 'create'],
+    predefinedArgs: ['arg' =&gt; 'predefined argument'],
+    predefinedTypes: ['string' =&gt; 'predefined type'],
+);
+$model = Model::create(...$args);
+
+assert($model-&gt;value-&gt;str === 'value property');
+assert($model-&gt;arg === 'predefined argument');
+assert($model-&gt;type === 'predefined type');
+</code></pre>
+<p>The constructor resolver works the same way:</p>
+<pre><code>use Conia\Wire\Wire;
+
+class Value
+{
+    public string $str = 'value property';
+}
+
+class Model
+{
+    public function __construct(
+        public string $arg,
+        public string $type,
+        public Value $value
+    ) {
+    }
+}
+
+$resolver = Wire::constructorResolver();
+$args = $resolver-&gt;resolve(
+    Model::class,
+    predefinedArgs: ['arg' =&gt; 'predefined argument'],
+    predefinedTypes: ['string' =&gt; 'predefined type']
+);
+$model = new Model(...$args);
+
+assert($model-&gt;value-&gt;str === 'value property');
+assert($model-&gt;arg === 'predefined argument');
+assert($model-&gt;type === 'predefined type');
+</code></pre>
+<h2 id="using-a-psr-11-container">Using a PSR-11 container</h2>
+<p>Like the creator, resolvers can be initialized with a container to help with
+unresolvable parameter arguments. (See also: <a href="containers.md">PSR-11
+Containers</a>) </p>
+<pre><code>use Conia\Wire\Tests\Fixtures\Container;
+use Conia\Wire\Wire;
+
+class Value
+{
+    public function __construct(protected string $str)
+    {
+    }
+
+    public function get(): string
+    {
+        return $this-&gt;str;
+    }
+}
+
+class Model
+{
+    public function __construct(protected Value $value)
+    {
+    }
+
+    public function get(): string
+    {
+        return $this-&gt;value-&gt;get();
+    }
+}
+
+$container = new Container();
+$container-&gt;add(Value::class, new Value('Model value'));
+
+$resolver = Wire::constructorResolver($container);
+$args = $resolver-&gt;resolve(Model::class);
+
+assert((new Model(...$args))-&gt;get() === 'Model value');
+</code></pre>
+<p>An example using the callable resolver:</p>
+<pre><code>use Conia\Wire\Tests\Fixtures\Container;
+use Conia\Wire\Wire;
+
+class Value
+{
+    public function __construct(protected string $str)
+    {
+    }
+
+    public function get(): string
+    {
+        return $this-&gt;str;
+    }
+}
+
+function readValue(Value $value): string
+{
+    return $value-&gt;get();
+}
+
+$container = new Container();
+$container-&gt;add(Value::class, new Value('Model value'));
+
+$resolver = Wire::callableResolver($container);
+$args = $resolver-&gt;resolve('readValue');
+
+assert(readValue(...$args) === 'Model value');
+</code></pre>
+<h2 id="creating-the-resolvers-without-the-wire-factory">Creating the resolvers without the <code>Wire</code> factory</h2>
+<p>Internally the <code>Wire</code> factory initializes the resolvers with the creator like shown here:</p>
+<pre><code>use Conia\Wire\CallableResolver;
+use Conia\Wire\ConstructorResolver;
+use Conia\Wire\Creator;
+// A PSR-11 container implementation like
+// https://conia.dev/registry or https://php-di.org
+use Conia\Wire\Tests\Fixtures\Container;
+
+$container = new Container();
+$creator = new Creator($container);
+$callableresolver = new CallableResolver($creator);
+$constructorResolver = new ConstructorResolver($creator);
+
+// Or without container
+$creator = new Creator();
+$callableresolver = new CallableResolver($creator);
+$constructorResolver = new ConstructorResolver($creator);
+</code></pre>
+            
+            </div>
+        </article>
+
+        <aside class="toc desktop">
+            <!-- github repo URL -->
+            
+                <a href="https://github.com/coniadev/wire/edit/master/docs/resolvers.md" class="github-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Pro 6.1.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+                    Edit on GitHub
+                </a>
+            
+
+            <div class="title">This Page</div>
+
+            <ul>
+            
+                <li><a href="#argument-resolvers">Argument Resolvers</a></li>
+                
+                    <li>
+                        <a href="#resolve-callable-arguments">Resolve callable arguments</a>
+                        
+                            <ul>
+                                
+                                <li>
+                                    <a href="#functions">Functions</a>
+                                </li>
+                                
+                                <li>
+                                    <a href="#closures">Closures</a>
+                                </li>
+                                
+                                <li>
+                                    <a href="#instance-methods">Instance methods</a>
+                                </li>
+                                
+                                <li>
+                                    <a href="#static-methods">Static methods</a>
+                                </li>
+                                
+                            </ul>
+                        
+                    </li>
+                
+                    <li>
+                        <a href="#resolve-constructor-arguments">Resolve constructor arguments</a>
+                        
+                    </li>
+                
+                    <li>
+                        <a href="#assist-resolvers-with-arguments-that-are-already-available">Assist resolvers with arguments that are already available</a>
+                        
+                    </li>
+                
+                    <li>
+                        <a href="#using-a-psr-11-container">Using a PSR-11 container</a>
+                        
+                    </li>
+                
+                    <li>
+                        <a href="#creating-the-resolvers-without-the-wire-factory">Creating the resolvers without the Wire factory</a>
+                        
+                    </li>
+                
+            
+            </ul>
+
+            <div class="title">Navigate</div>
+
+        
+            <ul class="prevnext">
+                <li>
+                    <a href="/" title="Home page">
+                        Home page
+                    </a>
+                </li>
+                
+                <li>
+                    Previous:
+                    <a href="../creator/" title="The Creator">
+                        <i>The Creator</i>
+                    </a>
+                </li>
+                
+                
+                <li>
+                    Next:
+                    <a href="../container/" title="PSR-11 Containers">
+                        <i>PSR-11 Containers</i>
+                    </a>
+                </li>
+                
+            </ul>
+        
+        </aside>
+    </main>
+
+    <footer>
+        © 2023-2024 ebene fünf GmbH |
+        Built with <a href="https://www.mkdocs.org">MkDocs</a>.
+    </footer>
+
+  <!--
+  MkDocs version      : 1.5.3
+  Docs Build Date UTC : 2024-01-18 18:50:20.206702+00:00
+  -->
+</body>
+</html>

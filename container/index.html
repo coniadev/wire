@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <title>PSR-11 Containers - Conia Wire</title>
+
+    <link rel="shortcut icon" href="../logo.svg">
+    <link rel="mask-icon" href="../logo.svg" color="#000000">
+
+    <link rel="stylesheet" href="../styles.css">
+
+
+
+    <script>var base_url = '..';</script>
+    <script src="../highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+
+
+
+
+
+    <script src="../search/main.js"></script>
+
+</head>
+
+<body>
+    <header class="mobile">
+        <div class="logo">
+            <a href="https://conia.dev">
+                <img src="../logo.svg" alt="PSR-11 Containers - Conia Wire Logo">
+            </a>
+            Wire
+        </div>
+        <div class="toc-link">
+            <a href="#navigation">Jump to table of contents</a>
+        </div>
+    </header>
+    <main>
+        <aside id="navigation" class="pane">
+            <div class="logo">
+                <a href="https://conia.dev">
+                    <img src="../logo.svg" alt="PSR-11 Containers - Conia Wire Logo">
+                </a>
+                Wire
+            </div>
+
+            <div class="title">Table of Contents</div>
+
+            <ul>
+            
+                <!--
+
+-->
+
+  <li>
+    Documentation
+    <ul>
+        
+            <!--
+
+-->
+
+<li >
+    <a href="..">Introduction</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../creator/">The Creator</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../resolvers/">Argument Resolvers</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li class="active">
+    <a href="./">PSR-11 Containers</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../call-attribute/">The Call Attribute</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../inject-attribute/">The Inject Attribute</a>
+</li>
+
+        
+    </ul>
+  </li>
+
+            
+                <!--
+
+-->
+
+  <li>
+    Resources
+    <ul>
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../changelog/">Changelog</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../license/">License</a>
+</li>
+
+        
+    </ul>
+  </li>
+
+            
+            </ul>
+
+            <div class="title">Quick Search</div>
+
+            <div role="search">
+                <form action="../search.html" method="get">
+                <input type="search" name="q" placeholder="Search docs" />
+                </form>
+            </div>
+        </aside>
+
+        <article>
+            <div>
+            
+                <h1 id="the-role-of-psr-11-containers">The Role of PSR-11 Containers</h1>
+<p>Autowiring is effective when all the parameters in the constructor of a class
+and its dependencies consist of objects of classes that do not require literals
+like strings, arrays, or numbers as constructor arguments. Dependencies that
+require objects to be instances of abstract types, such as interfaces or
+abstract classes, are not supported either.</p>
+<p>These are obviously huge limitations. But there is a solution: The creator and
+all resolvers can be initialized with a container that is compatible with
+PSR-11. It is used internally to resolve arguments that cannot be determined
+otherwise. Entries in the container are prioritized. This means that autowiring
+will only be used to inject dependencies if the type of a parameter is not
+already registered in the container.</p>
+<div class="admonition warn">
+<p class="admonition-title">Do not refuse to use the container</p>
+<p>Only in the simplest cases is a container not necessary. If only one of
+your dependencies requires a literal argument, you are doomed. Most of the
+time it is a good idea to combine <strong><em>Wire</em></strong> with a container
+implementation.</p>
+</div>
+<div class="admonition warn">
+<p class="admonition-title">Be warned about the simplified examples</p>
+<p>In the examples, we utilize a very basic container mock, which is also used
+in <strong><em>Wire</em></strong>'s test suite. More often than not, in the following code
+snippets, we store initialized objects in the container mock. We do this
+only to be able to show easy to understand code.  </p>
+<p>Of course, you should utilize a fully fledged container implementation and
+leverage its functionality to retrieve values that cannot be resolved by
+<strong><em>Wire</em></strong>.</p>
+</div>
+<h2 id="the-problem">The Problem</h2>
+<p>In the following example, the resolver cannot autowire the <code>Value</code> class
+because it cannot determine the value for the constructor parameter <code>$value</code>,
+which is of type <code>string</code>:</p>
+<pre><code>use Conia\Wire\Exception\WireException;
+use Conia\Wire\Wire;
+
+class Value
+{
+    public function __construct(protected string $str)
+    {
+    }
+}
+
+class Model
+{
+    public function __construct(protected Value $value)
+    {
+    }
+}
+
+$creator = Wire::creator();
+
+try {
+    $creator-&gt;create(Model::class);
+} catch (WireException $e) {
+    $message = $e-&gt;getMessage();
+} finally {
+    assert(str_contains($message, 'Parameter not resolvable'));
+}
+</code></pre>
+<h2 id="solving-the-problem">Solving the problem</h2>
+<p>By adding the parameter type that was causing the issue to a container
+implementation that is compatible with PSR-11, and then initializing the
+creator with that container, the problem no longer exists. As shown in the
+code block below:</p>
+<pre><code>use Conia\Wire\Tests\Fixtures\Container;
+use Conia\Wire\Wire;
+
+class Value
+{
+    public function __construct(protected string $str)
+    {
+    }
+
+    public function get(): string
+    {
+        return $this-&gt;str;
+    }
+}
+
+class Model
+{
+    public function __construct(protected Value $value)
+    {
+    }
+
+    public function get(): string
+    {
+        return $this-&gt;value-&gt;get();
+    }
+}
+
+$container = new Container();
+$container-&gt;add(Value::class, new Value('Model value'));
+
+$creator = Wire::creator($container);
+$model = $creator-&gt;create(Model::class);
+
+assert($model-&gt;get() === 'Model value');
+</code></pre>
+<h3 id="abstract-types">Abstract types</h3>
+<p>If there are abstract types like interfaces or abstract classes expected in the
+constructor of a class or its dependencies you will also need to work with
+a container:</p>
+<pre><code>use Conia\Wire\Tests\Fixtures\Container;
+use Conia\Wire\Wire;
+
+interface ValueInterface
+{
+    public function get(): string;
+}
+
+class Value implements ValueInterface
+{
+    public function get(): string
+    {
+        return 'From Value';
+    }
+}
+
+class Model
+{
+    public function __construct(public ValueInterface $value)
+    {
+    }
+}
+
+$container = new Container();
+$container-&gt;add(ValueInterface::class, new Value());
+
+$creator = Wire::creator($container);
+$model = $creator-&gt;create(Model::class);
+
+assert($model-&gt;value-&gt;get() === 'From Value');
+</code></pre>
+<h2 id="resolvers-and-containers">Resolvers and containers</h2>
+<p>Since the resolvers are the guts and the bones of the creator they work the
+same way:</p>
+<pre><code>use Conia\Wire\Tests\Fixtures\Container;
+use Conia\Wire\Wire;
+
+class Value
+{
+    public function __construct(protected string $str)
+    {
+    }
+
+    public function get(): string
+    {
+        return $this-&gt;str;
+    }
+}
+
+function readValue(Value $value): string
+{
+    return $value-&gt;get();
+}
+
+$container = new Container();
+$container-&gt;add(Value::class, new Value('Model value'));
+
+$resolver = Wire::callableResolver($container);
+$args = $resolver-&gt;resolve('readValue');
+
+assert(readValue(...$args) === 'Model value');
+</code></pre>
+<div class="admonition warn">
+<p class="admonition-title">Note</p>
+<p>If don't want to use the <code>Wire</code> factory to create a resolver you have to
+pass the container via the <code>Creator</code> that is needed for all resolver
+constructors.  </p>
+<p>More information:
+<a href="../creator/#creating-the-creator-without-the-wire-factory">Creating the creator without factory</a> and
+<a href="../resolvers/#creating-the-resolvers-without-the-wire-factory">Creating resolvers without factory</a></p>
+</div>
+            
+            </div>
+        </article>
+
+        <aside class="toc desktop">
+            <!-- github repo URL -->
+            
+                <a href="https://github.com/coniadev/wire/edit/master/docs/container.md" class="github-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Pro 6.1.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+                    Edit on GitHub
+                </a>
+            
+
+            <div class="title">This Page</div>
+
+            <ul>
+            
+                <li><a href="#the-role-of-psr-11-containers">The Role of PSR-11 Containers</a></li>
+                
+                    <li>
+                        <a href="#the-problem">The Problem</a>
+                        
+                    </li>
+                
+                    <li>
+                        <a href="#solving-the-problem">Solving the problem</a>
+                        
+                            <ul>
+                                
+                                <li>
+                                    <a href="#abstract-types">Abstract types</a>
+                                </li>
+                                
+                            </ul>
+                        
+                    </li>
+                
+                    <li>
+                        <a href="#resolvers-and-containers">Resolvers and containers</a>
+                        
+                    </li>
+                
+            
+            </ul>
+
+            <div class="title">Navigate</div>
+
+        
+            <ul class="prevnext">
+                <li>
+                    <a href="/" title="Home page">
+                        Home page
+                    </a>
+                </li>
+                
+                <li>
+                    Previous:
+                    <a href="../resolvers/" title="Argument Resolvers">
+                        <i>Argument Resolvers</i>
+                    </a>
+                </li>
+                
+                
+                <li>
+                    Next:
+                    <a href="../call-attribute/" title="The Call Attribute">
+                        <i>The Call Attribute</i>
+                    </a>
+                </li>
+                
+            </ul>
+        
+        </aside>
+    </main>
+
+    <footer>
+        © 2023-2024 ebene fünf GmbH |
+        Built with <a href="https://www.mkdocs.org">MkDocs</a>.
+    </footer>
+
+  <!--
+  MkDocs version      : 1.5.3
+  Docs Build Date UTC : 2024-01-18 18:50:20.201702+00:00
+  -->
+</body>
+</html>

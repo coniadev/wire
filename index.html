@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <title>Introduction - Conia Wire</title>
+
+    <link rel="shortcut icon" href="logo.svg">
+    <link rel="mask-icon" href="logo.svg" color="#000000">
+
+    <link rel="stylesheet" href="styles.css">
+
+
+
+    <script>var base_url = '.';</script>
+    <script src="highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+
+
+
+
+
+    <script src="search/main.js"></script>
+
+</head>
+
+<body>
+    <header class="mobile">
+        <div class="logo">
+            <a href="https://conia.dev">
+                <img src="logo.svg" alt="Introduction - Conia Wire Logo">
+            </a>
+            Wire
+        </div>
+        <div class="toc-link">
+            <a href="#navigation">Jump to table of contents</a>
+        </div>
+    </header>
+    <main>
+        <aside id="navigation" class="pane">
+            <div class="logo">
+                <a href="https://conia.dev">
+                    <img src="logo.svg" alt="Introduction - Conia Wire Logo">
+                </a>
+                Wire
+            </div>
+
+            <div class="title">Table of Contents</div>
+
+            <ul>
+            
+                <!--
+
+-->
+
+  <li>
+    Documentation
+    <ul>
+        
+            <!--
+
+-->
+
+<li class="active">
+    <a href=".">Introduction</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="creator/">The Creator</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="resolvers/">Argument Resolvers</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="container/">PSR-11 Containers</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="call-attribute/">The Call Attribute</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="inject-attribute/">The Inject Attribute</a>
+</li>
+
+        
+    </ul>
+  </li>
+
+            
+                <!--
+
+-->
+
+  <li>
+    Resources
+    <ul>
+        
+            <!--
+
+-->
+
+<li >
+    <a href="changelog/">Changelog</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="license/">License</a>
+</li>
+
+        
+    </ul>
+  </li>
+
+            
+            </ul>
+
+            <div class="title">Quick Search</div>
+
+            <div role="search">
+                <form action="search.html" method="get">
+                <input type="search" name="q" placeholder="Search docs" />
+                </form>
+            </div>
+        </aside>
+
+        <article>
+            <div>
+            
+                <h1 id="conia-wire">Conia Wire</h1>
+<p><strong><em>Wire</em></strong> provides an autowiring object creator that utilizes PHP's reflection
+capabilities to automatically resolve constructor arguments recursively. It
+additionally comes with classes that assist in resolving arguments of callables
+such as functions, methods, closures or class constructors. It can be combined
+with a PSR-11 dependency injection container.</p>
+<h2 id="installation">Installation</h2>
+<pre><code>composer require conia/wire
+</code></pre>
+<h2 id="how-to-create-objects">How to create objects</h2>
+<p>To create an object without knowing its classes' constructor arguments, simply
+create a <a href="creator/"><code>Creator</code></a> instance and pass the fully qualified class
+name to its resolver method:</p>
+<pre><code>use Conia\Wire\Wire;
+
+$creator = Wire::creator(); // creates a `Creator` instance
+$model = $creator-&gt;create(Model::class);
+</code></pre>
+<p>For a complete introduction and fully working examples, see
+<a href="creator/">The Creator</a></p>
+<h2 id="how-to-resolve-arguments">How to resolve arguments</h2>
+<p>To get a list of instantiated arguments for a callable or a constructor you can
+use one of the resolvers. Here you can see simplified example on how to use the
+<a href="resolvers/"><code>CallableResolver</code></a>:</p>
+<pre><code>function readValue(Value $value): string
+{
+    return $value-&gt;str;
+}
+
+$resolver = Wire::callableResolver();
+$args = $resolver-&gt;resolve('readValue');
+
+readValue(...$args);
+</code></pre>
+<p>More information on callable and constructor argument resolvers together with
+fully functioning examples can be found here: <a href="resolvers/">Argument
+resolvers</a></p>
+<h2 id="other-features">Other features</h2>
+<ul>
+<li>To be able to resolve generally unresolvable constructor or callable argument
+  types like literals (<code>string</code>, <code>int</code>, etc.), interfaces, or abstract classes,
+  <strong><em>Wire</em></strong>'s classes can be combined with
+  a <a href="https://www.php-fig.org/psr/psr-11/">PSR-11</a> compatible container
+  implementation. See <a href="container/">PSR-11 Containers</a>.</li>
+<li>If an object needs additional method calls after instantiation to be properly
+  initialized you can use the <a href="call-attribute/"><code>Call</code></a> class attribute.</li>
+<li>To override or change the default behaviour of the resolvers, or handle
+  literal values, you can annotate parameters of callables and constructors
+  with the <a href="inject-attribute/">Inject Attribute</a>.</li>
+</ul>
+            
+            </div>
+        </article>
+
+        <aside class="toc desktop">
+            <!-- github repo URL -->
+            
+                <a href="https://github.com/coniadev/wire/edit/master/docs/index.md" class="github-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Pro 6.1.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+                    Edit on GitHub
+                </a>
+            
+
+            <div class="title">This Page</div>
+
+            <ul>
+            
+                <li><a href="#conia-wire">Conia Wire</a></li>
+                
+                    <li>
+                        <a href="#installation">Installation</a>
+                        
+                    </li>
+                
+                    <li>
+                        <a href="#how-to-create-objects">How to create objects</a>
+                        
+                    </li>
+                
+                    <li>
+                        <a href="#how-to-resolve-arguments">How to resolve arguments</a>
+                        
+                    </li>
+                
+                    <li>
+                        <a href="#other-features">Other features</a>
+                        
+                    </li>
+                
+            
+            </ul>
+
+            <div class="title">Navigate</div>
+
+        
+            <ul class="prevnext">
+                <li>
+                    <a href="/" title="Home page">
+                        Home page
+                    </a>
+                </li>
+                
+                
+                <li>
+                    Next:
+                    <a href="creator/" title="The Creator">
+                        <i>The Creator</i>
+                    </a>
+                </li>
+                
+            </ul>
+        
+        </aside>
+    </main>
+
+    <footer>
+        © 2023-2024 ebene fünf GmbH |
+        Built with <a href="https://www.mkdocs.org">MkDocs</a>.
+    </footer>
+
+  <!--
+  MkDocs version      : 1.5.3
+  Docs Build Date UTC : 2024-01-18 18:50:20.198129+00:00
+  -->
+</body>
+</html>

@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <title>The Creator - Conia Wire</title>
+
+    <link rel="shortcut icon" href="../logo.svg">
+    <link rel="mask-icon" href="../logo.svg" color="#000000">
+
+    <link rel="stylesheet" href="../styles.css">
+
+
+
+    <script>var base_url = '..';</script>
+    <script src="../highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+
+
+
+
+
+    <script src="../search/main.js"></script>
+
+</head>
+
+<body>
+    <header class="mobile">
+        <div class="logo">
+            <a href="https://conia.dev">
+                <img src="../logo.svg" alt="The Creator - Conia Wire Logo">
+            </a>
+            Wire
+        </div>
+        <div class="toc-link">
+            <a href="#navigation">Jump to table of contents</a>
+        </div>
+    </header>
+    <main>
+        <aside id="navigation" class="pane">
+            <div class="logo">
+                <a href="https://conia.dev">
+                    <img src="../logo.svg" alt="The Creator - Conia Wire Logo">
+                </a>
+                Wire
+            </div>
+
+            <div class="title">Table of Contents</div>
+
+            <ul>
+            
+                <!--
+
+-->
+
+  <li>
+    Documentation
+    <ul>
+        
+            <!--
+
+-->
+
+<li >
+    <a href="..">Introduction</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li class="active">
+    <a href="./">The Creator</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../resolvers/">Argument Resolvers</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../container/">PSR-11 Containers</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../call-attribute/">The Call Attribute</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../inject-attribute/">The Inject Attribute</a>
+</li>
+
+        
+    </ul>
+  </li>
+
+            
+                <!--
+
+-->
+
+  <li>
+    Resources
+    <ul>
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../changelog/">Changelog</a>
+</li>
+
+        
+            <!--
+
+-->
+
+<li >
+    <a href="../license/">License</a>
+</li>
+
+        
+    </ul>
+  </li>
+
+            
+            </ul>
+
+            <div class="title">Quick Search</div>
+
+            <div role="search">
+                <form action="../search.html" method="get">
+                <input type="search" name="q" placeholder="Search docs" />
+                </form>
+            </div>
+        </aside>
+
+        <article>
+            <div>
+            
+                <h1 id="the-object-creator">The Object Creator</h1>
+<p><strong><em>Wire</em></strong>'s object <code>Creator</code> class helps you create instances of classes for
+which you don't have their constructor arguments at hand. It attempts to obtain
+or gather all the required values by analyzing the types of the constructor
+parameters of the class. </p>
+<h2 id="basic-usage-of-the-object-creator">Basic usage of the object creator</h2>
+<pre><code>use Conia\Wire\Wire;
+
+class Value
+{
+    public function get(): string
+    {
+        return 'Autowired Value';
+    }
+}
+
+class Model
+{
+    public function __construct(protected Value $value)
+    {
+    }
+
+    public function value(): string
+    {
+        return $this-&gt;value-&gt;get();
+    }
+}
+
+$creator = Wire::creator(); // creates a `Creator` instance
+$model = $creator-&gt;create(Model::class);
+
+assert($model instanceof Model);
+assert($model-&gt;value() === 'Autowired Value');
+</code></pre>
+<p>Behind the scenes, Wire will create both the <code>Value</code> and the <code>Model</code> objects.
+Since a <code>Value</code> object is required to initialize <code>Model</code> it is created
+beforehand and then passed to the constructor of <code>Model</code>. <code>Value</code> does not have
+constructor parameters and can therefore be instantiated safely.</p>
+<p>Technically, the creator uses reflection to determine the types of <code>Model</code>'s
+constructor parameters. If a parameter type is a class the creator will try to
+instantiate it by analyzing its constructor parameters as well. This process
+works recursively, continuously resolving arguments until they are all
+resolved, or until it encounters an unresolvable parameter.</p>
+<div class="admonition info">
+<p class="admonition-title">PSR-11 Containers</p>
+<p>When combined with a PSR-11 compatible dependency injection container, the
+creator can be assisted in resolving parameters that would otherwise be
+unresolvable.<br />
+See <a href="../container/">PSR-11 Containers</a>.</p>
+</div>
+<h2 id="factory-methods">Factory methods</h2>
+<p>If a class uses a static factory method to create an instance, you can pass the 
+name of the method to <code>Creator::create</code>:</p>
+<pre><code>use Conia\Wire\Wire;
+
+class Value
+{
+    public function get(): string
+    {
+        return 'Autowired Value';
+    }
+}
+
+class Model
+{
+    public function __construct(
+        public readonly Value $value,
+        public readonly string $str
+    ) {
+    }
+
+    public static function createModel(
+        Value $value,
+        string $str = 'default string'
+    ): self {
+        return new self($value, $str);
+    }
+}
+
+$creator = Wire::creator();
+$model = $creator-&gt;create(Model::class, constructor: 'createModel');
+
+assert($model instanceof Model);
+assert($model-&gt;value-&gt;get() === 'Autowired Value');
+assert($model-&gt;str === 'default string');
+</code></pre>
+<h2 id="parameters-with-default-values">Parameters with default values</h2>
+<p>If a parameter has a default value and is otherwise unresolvable, the default
+value is used:</p>
+<pre><code>use Conia\Wire\Wire;
+
+class Model
+{
+    public function __construct(public string $str = 'default value')
+    {
+    }
+}
+
+$creator = Wire::creator();
+$model = $creator-&gt;create(Model::class);
+
+assert($model instanceof Model);
+assert($model-&gt;str === 'default value');
+</code></pre>
+<h2 id="assist-the-creator-with-arguments-that-are-already-available">Assist the creator with arguments that are already available</h2>
+<h3 id="predefined-arguments">Predefined arguments</h3>
+<p>If you already have some or all of the arguments available to you, you can pass
+them to the create method by using an associative array. Predefined arguments
+are matched by name. When the name of the parameter to be resolved is the same
+as a key in the associative array, the value of that key is passed as the
+argument.</p>
+<pre><code>use Conia\Wire\Wire;
+
+class Value
+{
+    public function get(): string
+    {
+        return 'Autowired Value';
+    }
+}
+
+class Model
+{
+    public function __construct(
+        protected string $str,
+        protected Value $value
+    ) {
+    }
+
+    public function value(): string
+    {
+        return $this-&gt;value-&gt;get() . ' ' . $this-&gt;str;
+    }
+}
+
+$creator = Wire::creator();
+$model = $creator-&gt;create(Model::class, predefinedArgs: ['str' =&gt; 'and str']);
+
+assert($model instanceof Model);
+assert($model-&gt;value() === 'Autowired Value and str');
+</code></pre>
+<h3 id="predefined-types">Predefined types</h3>
+<p>These are very similar to predefined arguments. But instead of using
+a parameter's name to find a match in the associative array, it uses its type.
+Additionally, they are also used deeper down the object tree:</p>
+<pre><code>use Conia\Wire\Wire;
+
+class DeepValue
+{
+    public function __construct(public readonly string $value)
+    {
+    }
+}
+
+class Value
+{
+    public function __construct(public readonly DeepValue $deep)
+    {
+    }
+
+    public function get(): string
+    {
+        return 'Autowired Value';
+    }
+}
+
+class AnotherValue
+{
+    public function __construct(public readonly string $str)
+    {
+    }
+}
+
+class Model
+{
+    public function __construct(
+        public readonly Value $value,
+        public readonly AnotherValue $another,
+    ) {
+    }
+}
+
+$creator = Wire::creator();
+$model = $creator-&gt;create(
+    Model::class,
+    predefinedTypes: [
+        AnotherValue::class =&gt; new AnotherValue('predefined value'),
+        DeepValue::class =&gt; new DeepValue('deep value'),
+    ]
+);
+
+assert($model instanceof Model);
+assert($model-&gt;value-&gt;get() === 'Autowired Value');
+assert($model-&gt;value-&gt;deep-&gt;value === 'deep value');
+assert($model-&gt;another-&gt;str === 'predefined value');
+</code></pre>
+<p>You can also combine predefined types with the <a href="../inject-attribute/"><code>Inject</code> attribute</a>:</p>
+<pre><code>use Conia\Wire\Inject;
+use Conia\Wire\Wire;
+
+class Value
+{
+    public function get(): string
+    {
+        return 'Autowired Value';
+    }
+}
+
+class AnotherValue
+{
+    public function __construct(public readonly string $str)
+    {
+    }
+}
+
+class Model
+{
+    public function __construct(
+        public readonly Value $value,
+        #[Inject('use-this-id')]
+        public readonly AnotherValue $another,
+    ) {
+    }
+}
+
+$creator = Wire::creator();
+$model = $creator-&gt;create(
+    Model::class,
+    predefinedTypes: ['use-this-id' =&gt; new AnotherValue('predefined value')]
+);
+
+assert($model instanceof Model);
+assert($model-&gt;value-&gt;get() === 'Autowired Value');
+assert($model-&gt;another-&gt;str === 'predefined value');
+</code></pre>
+<h2 id="creating-the-creator-without-the-wire-factory">Creating the creator without the <code>Wire</code> factory</h2>
+<p>Internally the <code>Wire</code> factory initializes the creator like shown here:</p>
+<pre><code>use Conia\Wire\Creator;
+// A PSR-11 container implementation like
+// https://conia.dev/registry or https://php-di.org
+use Conia\Wire\Tests\Fixtures\Container;
+
+$container = new Container();
+$creator = new Creator($container);
+
+// Or without container
+$creator = new Creator();
+</code></pre>
+            
+            </div>
+        </article>
+
+        <aside class="toc desktop">
+            <!-- github repo URL -->
+            
+                <a href="https://github.com/coniadev/wire/edit/master/docs/creator.md" class="github-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Pro 6.1.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+                    Edit on GitHub
+                </a>
+            
+
+            <div class="title">This Page</div>
+
+            <ul>
+            
+                <li><a href="#the-object-creator">The Object Creator</a></li>
+                
+                    <li>
+                        <a href="#basic-usage-of-the-object-creator">Basic usage of the object creator</a>
+                        
+                    </li>
+                
+                    <li>
+                        <a href="#factory-methods">Factory methods</a>
+                        
+                    </li>
+                
+                    <li>
+                        <a href="#parameters-with-default-values">Parameters with default values</a>
+                        
+                    </li>
+                
+                    <li>
+                        <a href="#assist-the-creator-with-arguments-that-are-already-available">Assist the creator with arguments that are already available</a>
+                        
+                            <ul>
+                                
+                                <li>
+                                    <a href="#predefined-arguments">Predefined arguments</a>
+                                </li>
+                                
+                                <li>
+                                    <a href="#predefined-types">Predefined types</a>
+                                </li>
+                                
+                            </ul>
+                        
+                    </li>
+                
+                    <li>
+                        <a href="#creating-the-creator-without-the-wire-factory">Creating the creator without the Wire factory</a>
+                        
+                    </li>
+                
+            
+            </ul>
+
+            <div class="title">Navigate</div>
+
+        
+            <ul class="prevnext">
+                <li>
+                    <a href="/" title="Home page">
+                        Home page
+                    </a>
+                </li>
+                
+                <li>
+                    Previous:
+                    <a href=".." title="Introduction">
+                        <i>Introduction</i>
+                    </a>
+                </li>
+                
+                
+                <li>
+                    Next:
+                    <a href="../resolvers/" title="Argument Resolvers">
+                        <i>Argument Resolvers</i>
+                    </a>
+                </li>
+                
+            </ul>
+        
+        </aside>
+    </main>
+
+    <footer>
+        © 2023-2024 ebene fünf GmbH |
+        Built with <a href="https://www.mkdocs.org">MkDocs</a>.
+    </footer>
+
+  <!--
+  MkDocs version      : 1.5.3
+  Docs Build Date UTC : 2024-01-18 18:50:20.202866+00:00
+  -->
+</body>
+</html>
