@@ -33,7 +33,7 @@
         "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
         "ernst/coverlyzer": "^0.1.1",
         "phpunit/phpunit": "^10.4",
-        "vimeo/psalm": "^5.15"
+        "vimeo/psalm": "^5.15 || ^6.0"
     },
     "scripts": {
         "test": [
